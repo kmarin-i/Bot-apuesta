@@ -179,7 +179,7 @@ class ScraperAgent:
         # El scraper puede actualizar su accuracy basado en resultados
         # Por ahora solo loggea
         payload = event.payload
-        print(f"[{self.agent_id}] Result received: {payload.get('match_home')} vs {payload.get('match_away')} -> {payload.get('result')}")
+        print(f"[{self.agent_id}] Result received: {payload.get('home')} vs {payload.get('away')} -> {payload.get('result')}")
     
     def run_full_scrape(self):
         """Ejecuta scraping completo de todas las ligas."""

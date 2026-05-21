@@ -218,11 +218,12 @@ class ResultAgent:
                 }
                 pick_result = self.determine_pick_result(pick_data, match_result)
                 
-                # Calcular profit
+                # Calcular profit - usar stake real del pick (default $50)
+                stake = pick_data.get('stake', 50.0)
                 if pick_result == "WIN":
-                    profit = best_odds * 50 - 50  # Stake $50
+                    profit = best_odds * stake - stake
                 else:
-                    profit = -50
+                    profit = -stake
                 
                 # Actualizar pending
                 c.execute('''UPDATE pending_results 

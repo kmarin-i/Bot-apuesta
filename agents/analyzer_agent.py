@@ -82,6 +82,9 @@ class AnalyzerAgent:
             return {"value_score": 0, "expected_roi": 0, "recommendation": "SKIP"}
         
         implied_prob = 1 / dc_odds
+        if implied_prob <= 0:  # Evitar división por cero
+            return {"value_score": 0, "expected_roi": 0, "recommendation": "SKIP"}
+        
         value_ratio = historical_success_rate / implied_prob
         
         # Value score: > 1.0 = value, > 1.1 = strong value
@@ -95,6 +98,9 @@ class AnalyzerAgent:
             recommendation = "PASS"  # No hay value pero tampoco desventaja
         else:
             recommendation = "SKIP"  # Saltar -负value
+        
+        # Sanitizar expected_roi: no puede ser absurda (>1000% o <-100%)
+        expected_roi = max(-100, min(expected_roi, 1000))
         
         return {
             "value_score": round(value_ratio, 3),
@@ -211,9 +217,9 @@ class AnalyzerAgent:
             else:  # DC_12
                 hist_rate = league_stats.get('home_win_rate', 0.45) + league_stats.get('away_win_rate', 0.27)
             
-            # Ajustar por ROI del tipster
-            tipster_factor = 1 + (tipster_stats.get('roi', 0) / 100)
-            adjusted_rate = min(hist_rate * tipster_factor, 0.95)  # Cap at 95%
+            # Ajustar por ROI del tipster (factor entre 0.5 y 1.5 para evitar tasas negativas)
+            tipster_factor = max(0.5, min(1 + (tipster_stats.get('roi', 0) / 100), 1.5))
+            adjusted_rate = min(max(hist_rate * tipster_factor, 0.01), 0.95)  # Cap 1%-95%
             
             value_eval = self.calculate_value(dc_odd, adjusted_rate)
             

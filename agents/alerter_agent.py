@@ -68,22 +68,29 @@ class AlerterAgent:
         
         return msg
     
-    def calculate_stake(self, odds: float, bankroll: float = 1000, target_roi: float = 50) -> float:
+    def calculate_stake(self, odds: float, value_score: float, bankroll: float = 1000) -> float:
         """
         Calcula stake óptimo basado en Kelly Criterion simplificado.
+        value_score > 1 = value (ej: 1.15 = 15% value)
         """
-        # Kelly fraction = edge / odds
-        # edge = value_score - 1
-        edge = max(0, (1 / odds) - (1 - 1/odds))  # simplified
+        # Kelly completo: f* = (bp - q) / b
+        # donde b = odds - 1, p = probabilidad real, q = 1-p
+        # Para nosotros: edge = value_score - 1 (si value_score > 1)
+        # stake = edge * kelly_fraction * bankroll
         
-        # Usar fracción de Kelly (25% del full Kelly)
+        if value_score <= 1.0:
+            return 0  # No hay value, no apostar
+        
+        edge = value_score - 1  # El "edge" que tenemos
+        
+        # Kelly fraction (25% del full Kelly para ser conservador)
         kelly_fraction = 0.25 * edge
         
         # Stake como % del bankroll
-        stake = bankroll * kelly_fraction
+        stake = kelly_fraction * bankroll
         
-        # Bounds
-        stake = max(5, min(stake, bankroll * 0.1))  # Min $5, max 10% del bankroll
+        # Bounds: min $5, max 10% del bankroll
+        stake = max(5, min(stake, bankroll * 0.1))
         
         return round(stake, 2)
     
@@ -111,7 +118,8 @@ class AlerterAgent:
         
         # Calcular stake sugerido
         best_odds = payload.get('best_odds', 0)
-        stake = self.calculate_stake(best_odds)
+        value_score = payload.get('value_score', 1.0)
+        stake = self.calculate_stake(best_odds, value_score)
         
         message += f"\n💰 *Stake sugerido: ${stake:.2f}*"
         
