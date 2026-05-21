@@ -1,0 +1,82 @@
+{
+  "name": "Betting Agent Pipeline",
+  "nodes": [
+    {
+      "id": "schedule",
+      "name": "Schedule Trigger",
+      "type": "schedule",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {"field": "hours", "value": 6}
+          ]
+        }
+      }
+    },
+    {
+      "id": "scrape",
+      "name": "Scrape Betexplorer",
+      "type": "httpRequest",
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.betexplorer.com/football/south-america/copa-libertadores/",
+        "options": {}
+      }
+    },
+    {
+      "id": "scrape2",
+      "name": "Scrape Copa Sudamericana",
+      "type": "httpRequest",
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.betexplorer.com/football/south-america/copa-sudamericana/",
+        "options": {}
+      }
+    },
+    {
+      "id": "scrape3",
+      "name": "Scrape Liga MX",
+      "type": "httpRequest",
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.betexplorer.com/football/mexico/liga-mx/",
+        "options": {}
+      }
+    },
+    {
+      "id": "parse",
+      "name": "Parse Matches",
+      "type": "function",
+      "parameters": {
+        "functionCode": "// Extract match data from HTML\nconst html = $input.all()[0].json.data;\nconst matches = [];\n// Use regex patterns to extract team names and odds\n// This is simplified - real implementation would use proper HTML parsing\nreturn matches;"
+      }
+    },
+    {
+      "id": "filter",
+      "name": "Filter Value Bets",
+      "type": "function",
+      "parameters": {
+        "functionCode": "// Filter matches where DC odds are between 1.10 and 1.50\nconst matches = $input.all();\nconst valueBets = matches.filter(m => {\n  const dcOdds = calculateDCOdds(m.json.odds_1, m.json.odds_X, m.json.odds_2);\n  return dcOdds >= 1.10 && dcOdds <= 1.50;\n});\nreturn valueBets;"
+      }
+    },
+    {
+      "id": "telegram",
+      "name": "Send to Telegram",
+      "type": "telegram",
+      "parameters": {
+        "chatId": "7931331993",
+        "text": "={{ $json.message }}"
+      }
+    }
+  ],
+  "connections": {
+    "schedule": ["scrape", "scrape2", "scrape3"],
+    "scrape": ["parse"],
+    "scrape2": ["parse"],
+    "scrape3": ["parse"],
+    "parse": ["filter"],
+    "filter": ["telegram"]
+  },
+  "active": false,
+  "settings": {}
+}
